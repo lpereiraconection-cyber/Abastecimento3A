@@ -1,53 +1,61 @@
-[app]
+name: Build APK
 
-# (str) Título do aplicativo
-title = Abastecimento3A
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
-# (str) Nome do pacote
-package.name = abastecimento3a
+jobs:
+  build:
+    runs-on: ubuntu-22.04
 
-# (str) Domínio do pacote
-package.domain = org.abastecimento
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
 
-# (str) Pasta onde está o código principal
-source.dir = .
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-# (str) Extensões incluídas
-source.include_exts = py,png,jpg,jpeg,kv,atlas,json,txt
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
-# (str) Versão do aplicativo
-version = 1.0
+      - name: Instalar dependências do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libffi-dev \
+            libssl-dev \
+            cmake
 
-# (list) Dependências Python
-requirements = python3,kivy
+      - name: Instalar Buildozer e Cython
+        run: |
+          python -m pip install --upgrade pip
+          pip install buildozer
+          pip install "cython<3"
 
-# (str) Orientação
-orientation = portrait
+      - name: Gerar APK
+        run: |
+          buildozer android debug
 
-# (bool) Tela cheia
-fullscreen = 0
-
-# (str) Arquivo principal
-source.main = main.py
-
-
-# (str) Preservar o espaço reservado do app
-# presplash.filename = %(source.dir)s/data/presplash.png
-
-# (str) Ícone
-# icon.filename = %(source.dir)s/data/icon.png
-
-
-[buildozer]
-
-# (str) Diretório onde o Buildozer guarda os arquivos
-log_level = 2
-
-# (str) Diretório de trabalho
-warn_on_root = 1
-
-# (str) Caminho do build
-build_dir = .buildozer
-
-# (str) Diretório dos APKs
-bin_dir = bin
+      - name: Enviar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Abastecimento3A-APK
+          path: bin/*.apk
+          if-no-files-found: error
